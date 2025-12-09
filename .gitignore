@@ -1,5 +1,5 @@
 .idea
 .temp
-.pyc
+*.pyc
 .bin
 data

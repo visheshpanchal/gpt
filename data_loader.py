@@ -58,7 +58,8 @@ class CustomDataset(Dataset):
         return dataset_dict
 
     def tokenize(self, text: str):
-        return self.tokenizer.encode(text)
+        tokens = self.tokenizer.encode(text)
+        return tokens
 
     def recursively_collect_text(self, text: str | list[str] | StringScalar, prev: str):
         if isinstance(text, StringScalar):
@@ -119,12 +120,13 @@ class CustomDataset(Dataset):
         return self._input_tokens[index], self._target_tokens[index]
 
 
-def prepare_data(file_path, name, cache_dir, accept, model_name_from_hf, max_length=256, stride=128, max_tokens=None):
+def prepare_data(file_path, name, cache_dir, accept, model_name_from_hf, device, max_length=256, stride=128, max_tokens=None, data_from_hf=False):
     tokenizer = AutoTokenizer.from_pretrained(model_name_from_hf)
-    cd = CustomDataset(tokenizer, file_path, name, cache_dir, accept=accept, from_hf=False,
+    cd = CustomDataset(tokenizer, file_path, name, cache_dir, accept=accept, from_hf=data_from_hf,
                        max_length=max_length, stride=stride, max_tokens=max_tokens)
 
-    batches = DataLoader(cd, batch_size=4)
+    generator = torch.Generator(device=device)
+    batches = DataLoader(cd, batch_size=4, shuffle=True, generator=generator)
 
-    return iter(batches)
+    return batches
 
