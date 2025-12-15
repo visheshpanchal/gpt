@@ -9,9 +9,9 @@ class FeedForward(nn.Module):
     def __init__(self, config: Config):
         super().__init__()
         self.layer = nn.Sequential(
-            nn.Linear(config.embed_dim, 4 * config.embed_dim, device=config.device),
+            nn.Linear(config.embed_dim, 4 * config.embed_dim),
             nn.GELU(),
-            nn.Linear(4 * config.embed_dim, config.embed_dim, device=config.device),
+            nn.Linear(4 * config.embed_dim, config.embed_dim),
         )
 
     def forward(self, x: torch.Tensor):
@@ -20,22 +20,22 @@ class FeedForward(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, embed_dim:int, n_heads: int, context_length: int, dtype: torch.dtype, dropout: float, device ,qkv_bias=False):
+    def __init__(self, embed_dim:int, n_heads: int, context_length: int, dtype: torch.dtype, dropout: float ,qkv_bias=False):
         super().__init__()
         assert (embed_dim % n_heads == 0), "embed_dim must be divisible by n_heads"
 
         self.head_dim = embed_dim // n_heads
-        self.q_proj = nn.Linear(embed_dim, embed_dim, bias=qkv_bias, dtype=dtype, device=device)
-        self.k_proj = nn.Linear(embed_dim, embed_dim, bias=qkv_bias, dtype=dtype, device=device)
-        self.v_proj = nn.Linear(embed_dim, embed_dim, bias=qkv_bias, dtype=dtype, device=device)
+        self.q_proj = nn.Linear(embed_dim, embed_dim, bias=qkv_bias, dtype=dtype)
+        self.k_proj = nn.Linear(embed_dim, embed_dim, bias=qkv_bias, dtype=dtype)
+        self.v_proj = nn.Linear(embed_dim, embed_dim, bias=qkv_bias, dtype=dtype)
         self.n_heads = n_heads
 
-        self.out_proj = nn.Linear(embed_dim, embed_dim, dtype=dtype, device=device)
+        self.out_proj = nn.Linear(embed_dim, embed_dim, dtype=dtype)
         self.dropout = nn.Dropout(dropout)
 
         self.register_buffer(
             "mask",
-            torch.triu(torch.ones((context_length, context_length), device=device), diagonal=1)
+            torch.triu(torch.ones((context_length, context_length)), diagonal=1)
         )
 
     def _split_weights(self, x: torch.Tensor):
@@ -91,14 +91,14 @@ class Transformers(nn.Module):
     def __init__(self, config: Config):
         super().__init__()
 
-        self.layer_norm1 = nn.LayerNorm(config.embed_dim, device=config.device)
-        self.layer_norm2 = nn.LayerNorm(config.embed_dim, device=config.device)
+        self.layer_norm1 = nn.LayerNorm(config.embed_dim)
+        self.layer_norm2 = nn.LayerNorm(config.embed_dim)
 
         self.attn = MultiHeadAttention(config.embed_dim,
                                        config.n_heads,
                                        config.context_length,
                                        config.dtype,
-                                       config.dropout, device=config.device)
+                                       config.dropout)
         self.ff = FeedForward(config)
         self.dropout = nn.Dropout(config.dropout)
 
@@ -122,14 +122,14 @@ class Transformers(nn.Module):
 class GPT(nn.Module):
     def __init__(self, config: Config):
         super().__init__()
-        self.token_embedding = nn.Embedding(config.vocab_size, config.embed_dim, device=config.device)
-        self.pos_embedding = nn.Embedding(config.context_length, config.embed_dim, device=config.device)
+        self.token_embedding = nn.Embedding(config.vocab_size, config.embed_dim)
+        self.pos_embedding = nn.Embedding(config.context_length, config.embed_dim)
 
         self.transformer = nn.Sequential(
             *[ Transformers(config) for ii in range(config.n_transformer)]
         )
-        self.layer_norm = nn.LayerNorm(config.embed_dim, device=config.device)
-        self.logits = nn.Linear(config.embed_dim, config.vocab_size, device=config.device)
+        self.layer_norm = nn.LayerNorm(config.embed_dim)
+        self.logits = nn.Linear(config.embed_dim, config.vocab_size)
         self.dropout = nn.Dropout(config.dropout)
 
 
